@@ -106,13 +106,15 @@ def create_tables():
                 BOMDetailID INTEGER PRIMARY KEY AUTOINCREMENT,
                 BOMID INTEGER NOT NULL,
                 ComponentItemID INTEGER NOT NULL,
-                Quantity REAL NOT NULL,
+                Quantity REAL NOT NULL CHECK(Quantity > 0),
                 Unit TEXT,
-                ScrapRate REAL,
+                ScrapRate REAL CHECK(ScrapRate BETWEEN 0.0 AND 1.0),
                 FOREIGN KEY (BOMID) REFERENCES BOMHeader(BOMID),
-                FOREIGN KEY (ComponentItemID) REFERENCES ItemMaster(ItemID)
+                FOREIGN KEY (ComponentItemID) REFERENCES ItemMaster(ItemID),
+                UNIQUE(BOMID, ComponentItemID)
             );
         ''')
+
 
         # Create SalesOrderHeader table
         cursor.execute('''
@@ -200,7 +202,7 @@ def create_tables():
         # 添加索引
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_supplier_item_map_supplier ON SupplierItemMap(SupplierID)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_supplier_item_map_item ON SupplierItemMap(ItemID)")
-        
+
         conn.commit()
   
 def initialize_database():
