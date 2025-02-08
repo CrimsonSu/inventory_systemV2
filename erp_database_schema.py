@@ -31,6 +31,20 @@ def create_tables():
              );
         ''')
 
+        # Create Customer table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Customer (
+                CustomerID INTEGER PRIMARY KEY AUTOINCREMENT,
+                CustomerName TEXT NOT NULL,
+                Address TEXT,
+                TaxID TEXT,
+                ContactPerson TEXT,
+                Phone TEXT,
+                Email TEXT,
+                UNIQUE(CustomerName, TaxID)  -- 防止相同名稱與稅號的客戶重複
+             );
+        ''')
+
         # Create Stock table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS Stock (

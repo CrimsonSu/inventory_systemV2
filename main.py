@@ -1,5 +1,6 @@
 from erp_database_schema import create_tables
 from itemmaster_crud import add_item, get_items, update_item, get_item_by_id, delete_item
+from customer_crud import add_customer, get_customers, get_customer_by_id, update_customer, delete_customer
 from stock_crud import add_stock, get_stocks, update_stock, delete_stock
 from supplier_crud import add_supplier, get_suppliers, update_supplier, delete_supplier
 from stockmovement_crud import add_stock_movement, get_stock_movements, delete_stock_movement
@@ -23,6 +24,13 @@ from bomdetail_crud import (
     update_bom_detail,
     delete_bom_detail
 )
+from salesorderheader_crud import (
+    add_sales_order,
+    get_sales_orders,
+    get_sales_order_by_id,
+    update_sales_order,
+    delete_sales_order
+)
 
 def test_erp_system():
     """測試 ERP 系統的整合功能"""
@@ -37,21 +45,27 @@ def test_erp_system():
     update_item(1, new_name="更新後的原料")
     print("單筆項目:", get_item_by_id(1))
 
-    # === 測試2 Supplier ===
+    # === 測試2 Customer ===
+    print("\n--- 測試 Customer ---")
+    add_customer(customer_name="測試客戶", address="台北市測試路100號", tax_id="12345678", contact_person="張三", phone="0912345678", email="test_customer@example.com")
+    print("所有客戶:", get_customers())
+    update_customer(1, address="新地址")
+
+    # === 測試3 Supplier ===
     print("\n--- 測試 Supplier ---")
     add_supplier(supplier_name="供應商A", address="地址1", contact_person="聯絡人A", phone="0912345678", email="supplierA@example.com")
     print("所有供應商:", get_suppliers())
     update_supplier(1, address="新地址")
     print("更新後供應商:", get_suppliers())
 
-    # === 測試3 Stock ===
+    # === 測試4 Stock ===
     print("\n--- 測試 Stock ---")
     add_stock(item_id=1, warehouse_id=1, quantity=100, batch_no="B001", expire_date="2025-12-31")
     print("所有庫存:", get_stocks())
     update_stock(stock_id=1, new_quantity=150)
     print("更新後庫存:", get_stocks())
 
-    # === 測試4 StockMovement ===
+    # === 測試5 StockMovement ===
     print("\n--- 測試 StockMovement ---")
     try:
         # 使用動態獲取的 ItemID（確保存在）
@@ -77,7 +91,7 @@ def test_erp_system():
     except Exception as e:
         print(f"查詢庫存移動記錄失敗: {e}")
 
-    # === 測試5 SupplierItemMap ===
+    # === 測試6 SupplierItemMap ===
     print("\n--- 測試 SupplierItemMap ---")
     # 插入前建立供應商與項目
     add_supplier(supplier_name="供應商B", address="地址2", contact_person="聯絡人B", phone="0922222222", email="supplierB@example.com")
@@ -125,16 +139,26 @@ def test_erp_system():
     update_bom_detail(bom_detail_id=1, quantity=10.0, scrap_rate=0.05)
     print("更新後的 BOM 明細:", get_bom_details(bom_id=1))
 
+    # === 測試8 SalesOrderHeader ===
+    print("\n--- 測試 SalesOrderHeader ---")
+    add_sales_order(customer_id=1, order_date="2025-02-09", status="Pending")
+    print("所有銷售訂單:", get_sales_orders())
+    update_sales_order(1, status="Shipped")
+    print("更新後銷售訂單:", get_sales_order_by_id(1))  
+    
+
 
     # === 清理測試資料（可選） ===
     print("\n--- 清理測試資料 ---")
     # 注意：若需保留測試資料供後續使用，可跳過此步驟
-    delete_item(1)
+    delete_item(1)    
     delete_supplier(1)
     delete_stock(1)
     delete_supplier_item_mapping(1)
     delete_bom_detail(1)
     delete_bom_header(1)
+    delete_sales_order(1)
+    delete_customer(1)
 
 if __name__ == "__main__":
     test_erp_system()
