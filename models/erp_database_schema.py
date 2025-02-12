@@ -83,7 +83,9 @@ def create_tables():
                 Address TEXT,
                 ContactPerson TEXT,
                 Phone TEXT,
-                Email TEXT
+                Email TEXT,
+                Website TEXT,
+                TaxID TEXT
             );
         ''')
 

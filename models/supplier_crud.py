@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 # === CRUD Functions for Supplier ===
 
-def add_supplier(supplier_name: str, address: Optional[str] = None, contact_person: Optional[str] = None, phone: Optional[str] = None, email: Optional[str] = None):
+def add_supplier(supplier_name: str, address: Optional[str] = None, contact_person: Optional[str] = None, phone: Optional[str] = None, email: Optional[str] = None, website: Optional[str] = None, tax_id: Optional[str] = None):
     """新增供應商記錄"""
     if email and not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         raise ValueError("無效的 Email 格式")
@@ -18,9 +18,9 @@ def add_supplier(supplier_name: str, address: Optional[str] = None, contact_pers
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO Supplier (SupplierName, Address, ContactPerson, Phone, Email)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (supplier_name, address, contact_person, phone, email))
+                INSERT INTO Supplier (SupplierName, Address, ContactPerson, Phone, Email, Website, TaxID)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (supplier_name, address, contact_person, phone, email, website, tax_id))
             conn.commit()
             logging.info("成功新增供應商: %s", supplier_name)
         except sqlite3.IntegrityError as e:
@@ -60,7 +60,9 @@ def update_supplier(supplier_id: int, **kwargs):
         "address": "Address",
         "contact_person": "ContactPerson",
         "phone": "Phone",
-        "email": "Email"
+        "email": "Email",
+        "website": "Website",
+        "tax_id": "TaxID"
     }
     fields = []
     values = []

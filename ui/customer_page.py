@@ -56,12 +56,24 @@ class CustomerPage(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)  # 允許點選單個儲存格
         self.table.setSelectionBehavior(QAbstractItemView.SelectItems)  # 允許點選儲存格內容
 
+            # ✅ 確保「點擊任意欄位」都可以選取整列
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        # ✅ 讓點擊任意欄位時，都選取該行
+        self.table.cellClicked.connect(self.select_row)
+
         main_layout.addWidget(self.table)
 
         # 样式微调建议（可在代码中直接修改）
         # 1. 表格行高：self.table.verticalHeader().setDefaultSectionSize(30)
         # 2. 按钮图标：可使用QIcon添加图标
         # 3. 搜索框样式：可设置圆角边框
+
+    def select_row(self, row, column):
+        """ 當點擊表格的任何欄位時，確保整行被選取 """
+        self.table.selectRow(row)  # 讓整行變成選取狀態
 
     def keyPressEvent(self, event):
         """ 允許 Ctrl+C / Command+C 複製選取的儲存格內容 """
@@ -84,14 +96,26 @@ class CustomerPage(QWidget):
             self.table.setItem(row, 4, QTableWidgetItem(customer.get("Phone", "")))
             self.table.setItem(row, 5, QTableWidgetItem(customer.get("Address", "")))
             self.table.setItem(row, 6, QTableWidgetItem(customer.get("Address2", "")))
+
+            self.table.viewport().update()  # ✅ 確保 UI 立即刷新
     
     def search_customers(self):
         search_text = self.search_input.text().strip()
         self.load_data(search_text)
     
     def get_selected_id(self):
-        selected = self.table.selectedItems()
-        return int(selected[0].text()) if selected else None
+        """ 取得使用者目前選取的行的 CustomerID """
+        selected_row = self.table.currentRow()  # 取得當前選取的行
+        if selected_row == -1:
+            return None  # 沒有選擇行時返回 None
+
+        item = self.table.item(selected_row, 0)  # 假設 ID 是第一欄（索引 0）
+        if item:
+            return int(item.text())  # 返回 CustomerID
+
+        return None
+
+
     
     def add_customer(self):
         dialog = CustomerDialog(self)
@@ -99,21 +123,22 @@ class CustomerPage(QWidget):
             self.load_data()
             
     def edit_customer(self):
-        customer_id = self.get_selected_id()
+        customer_id = self.get_selected_id()  # ✅ 使用新的 get_selected_id()
         if not customer_id:
-            QMessageBox.warning(self, "警告", "请先选择要编辑的客户")
+            QMessageBox.warning(self, "警告", "請先選擇要編輯的客戶")
             return
-        
+
         # 🔐 讓使用者輸入密碼來編輯
         password, ok = QInputDialog.getText(self, "密碼驗證", "請輸入編輯密碼：", QLineEdit.Password)
-        if not ok or password != "9007":  # 這裡的密碼可以換成從資料庫或設定檔讀取
+        if not ok or password != "9007":
             QMessageBox.warning(self, "錯誤", "密碼錯誤，無法編輯客戶")
             return
-    
-            
+
+        from ui.dialogs.customer_dialog import CustomerDialog
         dialog = CustomerDialog(self, customer_id)
         if dialog.exec_():
-            self.load_data()
+            self.load_data()  # ✅ 確保 UI 刷新，顯示最新數據
+
     
     def delete_customer(self):
         customer_id = self.get_selected_id()
@@ -123,7 +148,7 @@ class CustomerPage(QWidget):
         
             # 輸入密碼確認刪除
         password, ok = QInputDialog.getText(self, "密碼驗證", "請輸入管理員密碼：", QLineEdit.Password)
-        if not ok or password != "0988773302":  # 這裡密碼可以改成從設定檔或資料庫讀取
+        if not ok or password != "9007":  # 這裡密碼可以改成從設定檔或資料庫讀取
             QMessageBox.warning(self, "錯誤", "密碼錯誤，無法刪除客戶")
             return
 
