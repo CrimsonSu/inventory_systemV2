@@ -10,9 +10,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # === CRUD Functions for Supplier ===
 
 def add_supplier(supplier_name: str, address: Optional[str] = None, contact_person: Optional[str] = None, phone: Optional[str] = None, email: Optional[str] = None, website: Optional[str] = None, tax_id: Optional[str] = None):
-    """新增供應商記錄"""
-    if email and not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        raise ValueError("無效的 Email 格式")
+    """新增供應商記錄，允許 Email 欄位為空白"""
+    if email:  # 只有當 Email 不為空時才進行驗證
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            logging.warning("無效的 Email 格式: %s", email)
+            return False  # Email 格式錯誤時 return False
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -31,14 +33,27 @@ def add_supplier(supplier_name: str, address: Optional[str] = None, contact_pers
             conn.rollback()
             logging.error("資料庫操作失敗: %s", e)
             raise RuntimeError("供應商記錄插入失敗")
+    
+def get_suppliers(search_text: Optional[str] = None,) -> List[Dict]:
+    query = "SELECT SupplierID, SupplierName, ContactPerson, Phone, Address,TaxID, Email ,Website FROM Supplier"
+    params = []
 
-def get_suppliers(offset: int = 0, limit: int = 100) -> List[Dict]:
-    """取得所有供應商記錄，支援分頁，返回字典格式"""
+    if search_text:
+        query += " WHERE SupplierName LIKE ? OR Phone LIKE ?"
+        search_pattern = f"%{search_text}%"
+        params.extend([search_pattern, search_pattern])
+
+    query += " ORDER BY SupplierID"
+
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Supplier LIMIT ? OFFSET ?", (limit, offset))
-        columns = [col[0] for col in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        try:
+            cursor.execute(query, params)
+            columns = [col[0] for col in cursor.description]
+            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"數據庫查詢錯誤: {e}")
+            return []
 
 def get_supplier_by_id(supplier_id: int) -> Optional[Dict]:
     """依 SupplierID 查詢供應商記錄"""
@@ -89,16 +104,30 @@ def update_supplier(supplier_id: int, **kwargs):
             logging.info("成功更新供應商: SupplierID = %d", supplier_id)
 
 def delete_supplier(supplier_id: int):
-    """刪除指定的供應商記錄"""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM Supplier WHERE SupplierID = ?", (supplier_id,))
-        if cursor.rowcount == 0:
-            logging.warning("刪除失敗，供應商 ID 不存在: SupplierID = %d", supplier_id)
-        else:
-            conn.commit()
-            logging.info("已刪除供應商: SupplierID = %d", supplier_id)
 
+        # ✅ 修正表名，查詢 `PurchaseOrderHeader` 是否仍有該供應商的訂單
+        cursor.execute("SELECT COUNT(*) FROM PurchaseOrderHeader WHERE SupplierID = ?", (supplier_id,))
+        order_count = cursor.fetchone()[0]
+
+        if order_count > 0:
+            logging.warning("❌ 無法刪除，供應商仍有 %d 筆訂單", order_count)
+            return f"❌ 刪除失敗：該供應商仍然有 {order_count} 筆訂單，請先刪除相關訂單！"
+
+        try:
+            cursor.execute("DELETE FROM Supplier WHERE SupplierID = ?", (supplier_id,))
+            conn.commit()
+            logging.info("✅ 成功刪除供應商: SupplierID = %d", supplier_id)
+            return "✅ 供應商已成功刪除！"
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            logging.error("❌ 刪除失敗（外鍵約束）: %s", e)
+            return "❌ 刪除失敗：該供應商仍然有關聯資料！"
+        except Exception as e:
+            conn.rollback()
+            logging.error("❌ 刪除時發生未知錯誤: %s", e)
+            return f"❌ 刪除失敗：{str(e)}"
 # === 測試範例 ===
 def test_supplier_crud():
     """測試供應商 CRUD 功能"""

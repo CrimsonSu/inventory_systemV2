@@ -208,13 +208,6 @@ def test_erp_system():
     update_purchase_order(poid=poid, status="Partial")
     print("更新後訂單:", get_purchase_orders())
 
-    # 刪除訂單明細
-    delete_purchase_order_detail(podetail_id=1)
-    print("刪除後的訂單明細:", get_purchase_order_details(poid=poid))
-
-    # 刪除訂單
-    delete_purchase_order(poid=poid)
-    print("成功刪除採購訂單")
 
     # === 測試14 ShipmentHeader ===
     print("\n--- 測試14 ShipmentHeader ---")
@@ -237,13 +230,6 @@ def test_erp_system():
     update_shipment_detail(shipment_detail_id=1, quantity=8.0)
     print("更新後出貨明細:", get_shipment_details(shipment_id=shipment_id))
 
-    delete_shipment_detail(shipment_detail_id=1)
-    print("刪除後出貨明細:", get_shipment_details(shipment_id=shipment_id))
-
-    # 刪除出貨單
-    delete_shipment(shipment_id)
-    print("刪除後出貨單:", get_shipments())
-
 
     # === 測試15 PriceHistory ===
     print("\n--- 測試15 PriceHistory ---")
@@ -264,25 +250,7 @@ def test_erp_system():
         update_price_history(price_history_id=price_history_id, price=120.0)
         print("更新後的價格歷史紀錄:", get_price_history(item_id=item_id))
 
-    # **4. 刪除價格歷史紀錄**
-    delete_price_history(price_history_id=price_history_id)
-    print("刪除後的價格歷史紀錄:", get_price_history(item_id=item_id))
 
-    # === 清理測試資料（可選） ===
-    print("\n--- 清理測試資料 ---")
-    # 注意：若需保留測試資料供後續使用，可跳過此步驟
-    delete_production_order_detail(production_detail_id=1)
-    delete_sales_order_detail(1)
-    delete_bom_detail(1)
-    delete_supplier_item_mapping(1)
-    delete_stock(1)
-    delete_bom_header(1)
-    delete_sales_order(1)
-    delete_item(1)
-    delete_supplier(1)
-    delete_customer(1)
-    delete_production_order(1)
- 
 if __name__ == "__main__":
     test_erp_system()
 

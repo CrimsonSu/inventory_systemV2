@@ -106,12 +106,32 @@ def update_customer(customer_id: int, **kwargs):
 
 # === Delete ===
 def delete_customer(customer_id: int):
-    """刪除指定的客戶記錄"""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM Customer WHERE CustomerID = ?", (customer_id,))
-        conn.commit()
-        logging.info("已刪除客戶: CustomerID = %d", customer_id)
+
+        # ✅ 修正表名，查詢 `SalesOrderHeader` 是否仍有該客戶的訂單
+        cursor.execute("SELECT COUNT(*) FROM SalesOrderHeader WHERE CustomerID = ?", (customer_id,))
+        order_count = cursor.fetchone()[0]
+
+        if order_count > 0:
+            logging.warning("❌ 無法刪除，客戶仍有 %d 筆訂單", order_count)
+            return f"❌ 刪除失敗：該客戶仍然有 {order_count} 筆訂單，請先刪除相關訂單！"
+
+        try:
+            cursor.execute("DELETE FROM Customer WHERE CustomerID = ?", (customer_id,))
+            conn.commit()
+            logging.info("✅ 成功刪除客戶: CustomerID = %d", customer_id)
+            return "✅ 客戶已成功刪除！"
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            logging.error("❌ 刪除失敗（外鍵約束）: %s", e)
+            return "❌ 刪除失敗：該客戶仍然有關聯資料！"
+        except Exception as e:
+            conn.rollback()
+            logging.error("❌ 刪除時發生未知錯誤: %s", e)
+            return f"❌ 刪除失敗：{str(e)}"
+
+
 
 
 # === 測試代碼 ===

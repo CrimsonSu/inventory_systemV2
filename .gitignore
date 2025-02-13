@@ -16,3 +16,6 @@ __pycache__/
 .vscode/
 .idea/
 *.iml
+
+# 忽略 macOS 產生的 .DS_Store
+.DS_Store

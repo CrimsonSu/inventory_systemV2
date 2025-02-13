@@ -1,6 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QMainWindow, QTabWidget
 from ui.customer_page import CustomerPage
+from ui.supplier_page import SupplierPage
 from models.erp_database_schema import initialize_database
 
 
@@ -10,15 +11,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("ERP System")
         self.setGeometry(200, 100, 1024, 768)
         
-        # 初始化分页
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
         
-        # 添加客户分页
+        # 客戶分頁
         self.customer_page = CustomerPage()
         self.tabs.addTab(self.customer_page, "客戶管理")
         
-        # 其他分页后续添加...
+        # 供應商分頁
+        self.supplier_page = SupplierPage()
+        self.tabs.addTab(self.supplier_page, "供應商管理")
 
 if __name__ == "__main__":
     initialize_database()

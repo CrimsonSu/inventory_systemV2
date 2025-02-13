@@ -130,7 +130,7 @@ class CustomerPage(QWidget):
 
         # 🔐 讓使用者輸入密碼來編輯
         password, ok = QInputDialog.getText(self, "密碼驗證", "請輸入編輯密碼：", QLineEdit.Password)
-        if not ok or password != "9007":
+        if not ok or password != "":
             QMessageBox.warning(self, "錯誤", "密碼錯誤，無法編輯客戶")
             return
 
@@ -139,35 +139,39 @@ class CustomerPage(QWidget):
         if dialog.exec_():
             self.load_data()  # ✅ 確保 UI 刷新，顯示最新數據
 
-    
     def delete_customer(self):
         customer_id = self.get_selected_id()
         if not customer_id:
-            QMessageBox.warning(self, "警告", "请先选择要删除的客户")
+            QMessageBox.warning(self, "警告", "請先選擇要刪除的客戶")
             return
         
-            # 輸入密碼確認刪除
-        password, ok = QInputDialog.getText(self, "密碼驗證", "請輸入管理員密碼：", QLineEdit.Password)
-        if not ok or password != "9007":  # 這裡密碼可以改成從設定檔或資料庫讀取
+        password, ok = QInputDialog.getText(self, "密碼驗證", "請輸入密碼：", QLineEdit.Password)
+        if not ok or password != "":
             QMessageBox.warning(self, "錯誤", "密碼錯誤，無法刪除客戶")
             return
 
         confirm = QMessageBox.question(
-            self, "确认删除", 
-            "确定要删除该客户吗？此操作不可恢复！",
+            self, "確認刪除",
+            "確定要刪除此客戶嗎？此操作不可恢復！",
             QMessageBox.Yes | QMessageBox.No
         )
+        
         if confirm == QMessageBox.Yes:
-            delete_customer(customer_id)
-            self.load_data()
-    
+            result = delete_customer(customer_id)
+
+            if "失敗" in result:
+                QMessageBox.warning(self, "刪除失敗", result)
+            else:
+                QMessageBox.information(self, "刪除成功", result)
+                self.load_data()
+
     def show_context_menu(self, pos):
         menu = QMenu()
         edit_action = menu.addAction("编辑")
         delete_action = menu.addAction("删除")
-        
         action = menu.exec_(self.table.mapToGlobal(pos))
         if action == edit_action:
             self.edit_customer()
         elif action == delete_action:
             self.delete_customer()
+        
