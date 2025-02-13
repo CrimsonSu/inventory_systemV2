@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QTabWidget
 from ui.customer_page import CustomerPage
 from ui.supplier_page import SupplierPage
+from ui.itemmaster_page import ItemMasterPage
 from models.erp_database_schema import initialize_database
 
 
@@ -21,6 +22,10 @@ class MainWindow(QMainWindow):
         # 供應商分頁
         self.supplier_page = SupplierPage()
         self.tabs.addTab(self.supplier_page, "供應商管理")
+
+        # 物料分頁
+        self.item_page = ItemMasterPage()
+        self.tabs.addTab(self.item_page, "物料管理")
 
 if __name__ == "__main__":
     initialize_database()

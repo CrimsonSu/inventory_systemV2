@@ -69,9 +69,16 @@ class SupplierPage(QWidget):
 
     def load_data(self, search_text=None):
         self.table.setRowCount(0)
-        suppliers = get_suppliers(search_text)  # ✅ [修改] 傳入 search_text 以啟用搜尋功能
+        suppliers = get_suppliers(search_text) or [] # ✅ [修改] 傳入 search_text 以啟用搜尋功能
 
+        if not suppliers:  # ✅ 如果沒有找到供應商，顯示提示，不讓程式崩潰
+            QMessageBox.information(self, "搜尋結果", "沒有找到符合條件的供應商！")
+            return  # ✅ 防止後續程式繼續執行，導致錯誤
+        
         for row, supplier in enumerate(suppliers):
+            if supplier is None:  # ✅ 確保 supplier 不是 None
+                continue
+
             self.table.insertRow(row)
             self.table.setItem(row, 0, QTableWidgetItem(str(supplier.get("SupplierID", ""))))
             self.table.setItem(row, 1, QTableWidgetItem(supplier.get("SupplierName", "")))
@@ -80,7 +87,7 @@ class SupplierPage(QWidget):
             self.table.setItem(row, 4, QTableWidgetItem(supplier.get("Phone", "")))
 
        # ✅ 設定超連結網址
-        website_url = supplier.get("Website", "").strip()
+            website_url = (supplier.get("Website") or "").strip()
         if website_url:
             website_label = QLabel()
             website_label.setText(f'<a href="{website_url}">{website_url}</a>')  # 確保網址是 HTML 格式

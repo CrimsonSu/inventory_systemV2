@@ -53,7 +53,7 @@ def get_items():
     """取得所有原料或成品，返回字典格式"""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ItemMaster")
+        cursor.execute("SELECT * FROM ItemMaster WHERE Status = 'active'")  # ✅ 只撈取 `Status='active'`
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -61,7 +61,7 @@ def get_item_by_id(item_id):
     """依 ItemID 查詢單筆原料或成品"""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ItemMaster WHERE ItemID = ?", (item_id,))
+        cursor.execute("SELECT * FROM ItemMaster WHERE ItemID = ? AND Status = 'active'", (item_id,))
         columns = [col[0] for col in cursor.description]
         row = cursor.fetchone()
         return dict(zip(columns, row)) if row else None

@@ -45,7 +45,7 @@ class CustomerPage(QWidget):
         # 客户表格
         self.table = QTableWidget(self)
         self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels(["ID", "客戶名稱", "統一編號", "聯絡人", "電話", "地址", "送貨地址"])
+        self.table.setHorizontalHeaderLabels(["ID", "客戶名稱", "統一編號", "聯絡人", "電話", "地址", "送貨地址", "狀態"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -55,11 +55,7 @@ class CustomerPage(QWidget):
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 禁止直接編輯
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)  # 允許點選單個儲存格
         self.table.setSelectionBehavior(QAbstractItemView.SelectItems)  # 允許點選儲存格內容
-
-            # ✅ 確保「點擊任意欄位」都可以選取整列
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         # ✅ 讓點擊任意欄位時，都選取該行
         self.table.cellClicked.connect(self.select_row)
