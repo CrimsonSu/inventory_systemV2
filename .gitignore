@@ -1,2 +1,18 @@
+# 忽略 Python 虛擬環境
+venv/
+.env
+
+# 忽略資料庫檔案
+*.db
+*.sqlite3
+
+# 忽略 Python 產生的暫存檔案
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# 忽略 IDE 和編輯器的設定檔案
+.vscode/
+.idea/
+*.iml
