@@ -49,13 +49,24 @@ def add_item(item_name, item_type, category, unit):
 
         
 # === Read ===
-def get_items():
-    """取得所有原料或成品，返回字典格式"""
+def get_items(search: str = None, page: int = 1, page_size: int = 0) -> List[Dict]:
+    """获取有效物料数据（支持分页和搜索）"""
+    query = "SELECT * FROM ItemMaster WHERE Status = 'active'"
+    params = []
+    
+    if search:
+        query += " AND ItemName LIKE ?"
+        params.append(f"%{search}%")
+    
+    if page_size > 0:
+        offset = (page - 1) * page_size
+        query += " LIMIT ? OFFSET ?"
+        params.extend([page_size, offset])
+    
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ItemMaster WHERE Status = 'active'")  # ✅ 只撈取 `Status='active'`
-        columns = [col[0] for col in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.execute(query, params)
+        return [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
 
 def get_item_by_id(item_id):
     """依 ItemID 查詢單筆原料或成品"""

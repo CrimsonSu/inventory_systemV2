@@ -86,6 +86,7 @@ def create_tables():
                 Email TEXT,
                 Website TEXT,
                 TaxID TEXT
+                
             );
         ''')
 

@@ -4,7 +4,7 @@ from ui.customer_page import CustomerPage
 from ui.supplier_page import SupplierPage
 from ui.itemmaster_page import ItemMasterPage
 from models.erp_database_schema import initialize_database
-
+from ui.SupplierItemMapPage import SupplierItemMapPage
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -26,6 +26,10 @@ class MainWindow(QMainWindow):
         # 物料分頁
         self.item_page = ItemMasterPage()
         self.tabs.addTab(self.item_page, "物料管理")
+
+        # 供應商-物料關聯分頁
+        self.supplier_item_map_page = SupplierItemMapPage()
+        self.tabs.addTab(self.supplier_item_map_page, "供應商-物料關聯")
 
 if __name__ == "__main__":
     initialize_database()
