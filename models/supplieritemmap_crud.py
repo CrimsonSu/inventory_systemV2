@@ -4,6 +4,8 @@ from typing import List, Dict, Optional
 import logging
 from models.erp_database_schema import get_connection, create_tables
 from models.supplier_crud import add_supplier
+from models.pricehistory_crud import add_price_history_from_mapping  # 新增此行
+from datetime import datetime  # 新增此行
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -55,10 +57,19 @@ def add_supplier_item_mapping(supplier_id: int, item_id: int, moq: Optional[int]
                 INSERT INTO SupplierItemMap (SupplierID, ItemID, MOQ, Price, LeadTime)
                 VALUES (?, ?, ?, ?, ?)
             ''', (supplier_id, item_id, moq, price, lead_time))
-            conn.commit()
-            logging.info("成功新增供應商項目映射記錄: SupplierID=%d, ItemID=%d", supplier_id, item_id)
+
+            if price is not None:
+                add_price_history_from_mapping(
+                    supplier_id=supplier_id,
+                    item_id=item_id,
+                    price=price,
+                    effective_date=datetime.now().strftime("%Y-%m-%d"),
+                    conn=conn  # 傳入現有連接
+                )
+                conn.commit()
         except sqlite3.IntegrityError as e:
             conn.rollback()
+            
             if "UNIQUE" in str(e):
                 logging.error("唯一性約束失敗: %s", e)
                 raise ValueError("同一 SupplierID 與 ItemID 的映射已存在") from e
@@ -121,7 +132,22 @@ def update_supplier_item_mapping(mapping_id: int, **kwargs):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(query, tuple(values))
-        conn.commit()
+
+        if "price" in kwargs and kwargs["price"] is not None:
+            # 獲取現有 SupplierID 和 ItemID
+            cursor.execute("SELECT SupplierID, ItemID FROM SupplierItemMap WHERE MappingID = ?", (mapping_id,))
+            mapping_data = cursor.fetchone()
+            # 調用時傳入現有連接
+            add_price_history_from_mapping(
+                supplier_id=mapping_data[0],
+                item_id=mapping_data[1],
+                price=kwargs["price"],
+                effective_date=datetime.now().strftime("%Y-%m-%d"),
+                conn=conn  # 關鍵：共享連接
+            )
+
+        conn.commit()  # 統一提交事務
+
         logging.info("成功更新供應商項目映射記錄: MappingID = %d", mapping_id)
 
 def delete_supplier_item_mapping(mapping_id: int) -> bool:

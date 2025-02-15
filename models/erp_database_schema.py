@@ -246,6 +246,7 @@ def create_tables():
                 ItemID INTEGER NOT NULL,
                 EffectiveDate DATE NOT NULL,
                 Price REAL NOT NULL CHECK(Price > 0),
+                LastUpdated DATETIME DEFAULT CURRENT_TIMESTAMP,  -- 新增此欄位
                 FOREIGN KEY (ItemID) REFERENCES ItemMaster(ItemID)
             );
         ''')

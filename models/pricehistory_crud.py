@@ -2,8 +2,10 @@ import sqlite3
 from datetime import datetime
 from contextlib import contextmanager
 from typing import List, Dict, Optional
+from datetime import datetime  # 新增此行
 import logging
 from models.erp_database_schema import get_connection, create_tables
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -75,16 +77,57 @@ def add_price_history(item_id: int, effective_date: str, price: float):
             logging.error("新增價格歷史失敗: %s", e)
             raise ValueError("項目不存在或數據錯誤")
 
-def get_price_history(item_id: int) -> List[Dict]:
+def get_price_history(search_text: str = None) -> List[Dict]:
+    """取得價格歷史，可選搜索供應商或產品名稱"""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT * FROM PriceHistory WHERE ItemID = ? ORDER BY EffectiveDate DESC
-        ''', (item_id,))
+        query = '''
+            SELECT 
+                ph.PriceHistoryID,
+                s.SupplierName,
+                i.ItemName,
+                ph.Price,
+                ph.EffectiveDate,
+                ph.EffectiveDate AS LastUpdated  -- 沿用生效日期作為最後更新時間
+            FROM PriceHistory ph
+            JOIN SupplierItemMap sim ON ph.ItemID = sim.ItemID
+            JOIN Supplier s ON sim.SupplierID = s.SupplierID
+            JOIN ItemMaster i ON ph.ItemID = i.ItemID
+        '''
+        params = ()
+        if search_text:
+            query += " WHERE s.SupplierName LIKE ? OR i.ItemName LIKE ?"
+            params = (f"%{search_text}%", f"%{search_text}%")
+        
+        cursor.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
 
-ALLOWED_FIELDS = {'price', 'effectivedate'}
+# 新增此函數用於供應商映射觸發的價格記錄
+def add_price_history_from_mapping(
+    supplier_id: int, 
+    item_id: int, 
+    price: float, 
+    effective_date: str, 
+    conn: sqlite3.Connection = None  # 正确接收外部连接
+):
+    """新增價格歷史記錄（支持外部傳入連接）"""
+    should_close = False
+    if conn is None:
+        conn = sqlite3.connect("erp_system.db")
+        conn.execute("PRAGMA foreign_keys = ON")
+        should_close = True
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO PriceHistory (ItemID, EffectiveDate, Price)
+            VALUES (?, ?, ?)
+        ''', (item_id, effective_date, price))
+        conn.commit()
+    finally:
+        if should_close:
+            conn.close()    
 
+ALLOWED_FIELDS = {'price', 'effectivedate'}
 def update_price_history(price_history_id: int, **kwargs):
     # 統一將傳入字段名稱轉為小寫
     normalized_kwargs = {k.lower(): v for k, v in kwargs.items()}
@@ -103,7 +146,7 @@ def update_price_history(price_history_id: int, **kwargs):
             SET {updates}
             WHERE PriceHistoryID = ?
         ''', params)
-      
+        conn.commit()
 
 def delete_price_history(price_history_id: int):
     with get_connection() as conn:
