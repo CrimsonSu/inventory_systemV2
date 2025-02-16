@@ -111,6 +111,8 @@ def get_supplier_item_mapping_by_id(mapping_id: int) -> Optional[Dict]:
 def update_supplier_item_mapping(mapping_id: int, **kwargs):
     """更新供應商與項目關聯記錄"""
     allowed_fields = {
+        "supplier_id": "SupplierID",  # 新增，允許更新供應商
+        "item_id": "ItemID",          # 新增，允許更新產品
         "moq": "MOQ",
         "price": "Price",
         "lead_time": "LeadTime"
@@ -161,6 +163,29 @@ def delete_supplier_item_mapping(mapping_id: int) -> bool:
         conn.commit()
         logging.info("已刪除供應商項目映射記錄: MappingID = %d", mapping_id)
         return True
+    
+def get_latest_supplier_price(supplier_id: int, item_id: int):
+    """
+    取得指定供應商與品項最新的價格（以每 kg 記錄），若找不到則回傳 None。
+    此函式從 SupplierItemMap 表中根據 MappingID 由大到小排序，取最新的一筆價格。
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT Price FROM SupplierItemMap
+            WHERE SupplierID = ? AND ItemID = ?
+            ORDER BY MappingID DESC
+            LIMIT 1
+            """,
+            (supplier_id, item_id)
+        )
+        row = cursor.fetchone()
+        if row:
+            return row[0]
+        else:
+            return None
+
 
 
 # === 測試範例 ===

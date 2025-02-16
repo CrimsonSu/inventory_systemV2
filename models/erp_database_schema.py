@@ -112,6 +112,7 @@ def create_tables():
                 ProductID INTEGER NOT NULL,
                 Version TEXT NOT NULL,
                 EffectiveDate DATE NOT NULL,
+                ProductWeight REAL,   -- 新增的欄位       
                 ExpireDate DATE,
                 Remarks TEXT,
                 FOREIGN KEY (ProductID) REFERENCES ItemMaster(ItemID)
@@ -127,6 +128,8 @@ def create_tables():
                 Quantity REAL NOT NULL CHECK(Quantity > 0),
                 Unit TEXT,
                 ScrapRate REAL CHECK(ScrapRate BETWEEN 0.0 AND 1.0),
+                SupplierID INTEGER,    -- 新增欄位
+                Price REAL,            -- 新增欄位 (存每公克價格)
                 FOREIGN KEY (BOMID) REFERENCES BOMHeader(BOMID),
                 FOREIGN KEY (ComponentItemID) REFERENCES ItemMaster(ItemID),
                 UNIQUE(BOMID, ComponentItemID)

@@ -25,7 +25,7 @@ def validate_dates(effective_date: str, expire_date: Optional[str]):
 # === 增強的 CRUD 函數 ===
 
 # === Create ===
-def add_bom_header(product_id: int, version: str, effective_date: str, expire_date: Optional[str] = None, remarks: Optional[str] = None):
+def add_bom_header(product_id: int, version: str, effective_date: str, product_weight: float, expire_date: Optional[str] = None, remarks: Optional[str] = None):
     """新增 BOMHeader 記錄"""
     if not check_product_exists(product_id):
         raise ValueError(f"ProductID {product_id} 不存在於 ItemMaster 表中")
@@ -37,10 +37,10 @@ def add_bom_header(product_id: int, version: str, effective_date: str, expire_da
         try:
             cursor.execute(
                 '''
-                INSERT INTO BOMHeader (ProductID, Version, EffectiveDate, ExpireDate, Remarks)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO BOMHeader (ProductID, Version, EffectiveDate, ExpireDate, Remarks, ProductWeight)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ''',
-                (product_id, version, effective_date, expire_date, remarks)
+                (product_id, version, effective_date, expire_date, remarks, product_weight)
             )
             conn.commit()
             logging.info("成功新增 BOMHeader: ProductID = %d, Version = %s", product_id, version)
@@ -79,7 +79,8 @@ def update_bom_header(bom_id: int, **kwargs):
         "new_version": "Version",
         "new_effective_date": "EffectiveDate",
         "new_expire_date": "ExpireDate",
-        "new_remarks": "Remarks"
+        "new_remarks": "Remarks",
+        "new_product_weight": "ProductWeight"
     }
 
     fields = []

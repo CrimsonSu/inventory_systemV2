@@ -10,8 +10,9 @@ logging.basicConfig(level=logging.INFO)
 
         
 # === CRUD Functions for BOMDetail ===
-def add_bom_detail(bom_id: int, component_item_id: int, quantity: float, unit: str, scrap_rate: Optional[float] = None):
-    """新增 BOM 明細"""
+def add_bom_detail(bom_id: int, component_item_id: int, quantity: float, unit: str, 
+                   scrap_rate: Optional[float] = None, supplier_id: Optional[int] = None, price: Optional[float] = None):
+    """新增 BOM 明細，包含供應商與價格資訊"""
     if quantity <= 0:
         raise ValueError("Quantity 必須為正數")
     if scrap_rate is not None and not (0.0 <= scrap_rate <= 1.0):
@@ -21,9 +22,9 @@ def add_bom_detail(bom_id: int, component_item_id: int, quantity: float, unit: s
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO BOMDetail (BOMID, ComponentItemID, Quantity, Unit, ScrapRate)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (bom_id, component_item_id, quantity, unit, scrap_rate))
+                INSERT INTO BOMDetail (BOMID, ComponentItemID, Quantity, Unit, ScrapRate, SupplierID, Price)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (bom_id, component_item_id, quantity, unit, scrap_rate, supplier_id, price))
             conn.commit()
             logging.info("成功新增 BOMDetail")
         except sqlite3.IntegrityError as e:
@@ -37,10 +38,12 @@ def add_bom_detail(bom_id: int, component_item_id: int, quantity: float, unit: s
             else:
                 raise
 
+
 def get_bom_details(bom_id: Optional[int] = None, component_item_id: Optional[int] = None) -> List[Dict]:
     """取得 BOMDetail 記錄，支援條件篩選"""
     query = '''
         SELECT d.BOMDetailID, d.BOMID, d.ComponentItemID, d.Quantity, d.Unit, d.ScrapRate,
+               d.SupplierID, d.Price,   -- 新增供應商與價格欄位
                i.ItemName AS ComponentName
         FROM BOMDetail d
         JOIN ItemMaster i ON d.ComponentItemID = i.ItemID
@@ -59,6 +62,7 @@ def get_bom_details(bom_id: Optional[int] = None, component_item_id: Optional[in
         cursor.execute(query, tuple(params))
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
 
 
 def update_bom_detail(bom_detail_id: int, **kwargs):
