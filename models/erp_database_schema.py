@@ -254,6 +254,16 @@ def create_tables():
             );
         ''')
 
+        # [新增] 建立 CostHistory 資料表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS CostHistory (
+                CostHistoryID INTEGER PRIMARY KEY AUTOINCREMENT,
+                ProductName TEXT NOT NULL,
+                Price REAL NOT NULL,
+                UpdateTime DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        ''')
+        
         # 添加索引
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_supplier_item_map_supplier ON SupplierItemMap(SupplierID)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_supplier_item_map_item ON SupplierItemMap(ItemID)")

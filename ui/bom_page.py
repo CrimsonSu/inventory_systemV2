@@ -20,7 +20,7 @@ from models.itemmaster_crud import get_items, get_item_by_id
 from models.supplier_crud import get_suppliers
 # 新增：假設此函式可以根據供應商與品項取得最新價格（單位 kg）
 from models.supplieritemmap_crud import get_latest_supplier_price
-
+from models.costhistory_crud import add_cost_history
 # ===================== BOM 主檔管理頁面 =====================
 class BOMPage(QWidget):
     def __init__(self):
@@ -242,6 +242,13 @@ class BOMDialog(QDialog):
         detail_btn_layout.addWidget(self.btn_delete_detail)
         main_layout.addLayout(detail_btn_layout)
 
+                # [新增] 「一鍵自動抓取價格」按鈕
+        self.btn_fetch_all_prices = QPushButton("一鍵自動抓取價格")
+        self.btn_fetch_all_prices.clicked.connect(self.fetch_all_prices)
+        detail_btn_layout.addWidget(self.btn_fetch_all_prices)
+        
+        main_layout.addLayout(detail_btn_layout)
+
         # 總成本顯示
         self.total_label = QLabel("總成本：0.00")
         main_layout.addWidget(self.total_label)
@@ -255,6 +262,8 @@ class BOMDialog(QDialog):
         self.btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(self.btn_cancel)
         main_layout.addLayout(btn_layout)
+
+        self.setLayout(main_layout)
 
     def load_bom_data(self):
         # 從後端取得 BOM header 與明細資料
@@ -370,6 +379,43 @@ class BOMDialog(QDialog):
             del self.detail_list[row]
             self.refresh_detail_tree()
             self.calculate_total_cost()
+
+     # [新增] 一鍵自動抓取價格
+    def fetch_all_prices(self):
+        """
+        迭代目前 self.detail_list 的所有明細，依照 SupplierID + ComponentItemID
+        取得最新價格，更新 Price，並將更新後的價格寫入 CostHistory。
+        """
+        # 注意：get_latest_supplier_price 回傳的是「每公斤」的價格，需要除以 1000 變成 每克 價格。
+        updated_count = 0
+        for detail in self.detail_list:
+            supplier_id = detail.get("SupplierID")
+            component_id = detail.get("ComponentItemID")
+
+            # 若明細沒有指定 supplier_id，則略過
+            if not supplier_id:
+                continue
+
+            latest_price_per_kg = get_latest_supplier_price(supplier_id, component_id)
+            if latest_price_per_kg is not None:
+                # 轉換成 每 g
+                price_per_g = latest_price_per_kg / 1000.0
+                detail["Price"] = price_per_g
+
+                # 寫入 CostHistory
+                # 取得組件名稱
+                comp_item = get_item_by_id(component_id)
+                product_name = comp_item["ItemName"] if comp_item else f"ItemID:{component_id}"
+                add_cost_history(product_name, price_per_g)
+
+                updated_count += 1
+
+        # 重新整理畫面
+        self.refresh_detail_tree()
+        self.calculate_total_cost()
+
+        QMessageBox.information(self, "完成", f"已自動抓取並更新 {updated_count} 筆明細的價格。")
+
 
     def accept(self):
         # 檢查必要欄位
