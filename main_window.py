@@ -7,6 +7,7 @@ from models.erp_database_schema import initialize_database
 from ui.SupplierItemMapPage import SupplierItemMapPage
 from ui.pricehistorypage import PriceHistoryPage
 from ui.bom_page import BOMPage
+from ui.bomhistory_page import CostHistoryPage
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -40,6 +41,10 @@ class MainWindow(QMainWindow):
         # BOM分頁
         self.bom_page = BOMPage()
         self.tabs.addTab(self.bom_page, "BOM管理")
+
+        self.bomhistory_page = CostHistoryPage()
+        self.tabs.addTab(self.bomhistory_page, "BOM歷史頁面")
+
 
 if __name__ == "__main__":
     initialize_database()
