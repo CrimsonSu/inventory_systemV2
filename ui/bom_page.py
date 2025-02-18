@@ -382,10 +382,7 @@ class BOMDialog(QDialog):
 
      # [新增] 一鍵自動抓取價格
     def fetch_all_prices(self):
-        """
-        迭代目前 self.detail_list 的所有明細，依照 SupplierID + ComponentItemID
-        取得最新價格，更新 Price，並將更新後的價格寫入 CostHistory。
-        """
+
         # 注意：get_latest_supplier_price 回傳的是「每公斤」的價格，需要除以 1000 變成 每克 價格。
         updated_count = 0
         for detail in self.detail_list:
@@ -406,16 +403,38 @@ class BOMDialog(QDialog):
                 # 取得組件名稱
                 comp_item = get_item_by_id(component_id)
                 product_name = comp_item["ItemName"] if comp_item else f"ItemID:{component_id}"
-                add_cost_history(product_name, price_per_g)
 
                 updated_count += 1
+
+        total = 0.0  # 初始化 total 變數
+        product_weight = self.product_weight_input.value()
+        for detail in self.detail_list:
+            percentage = detail["Quantity"]
+            if detail.get("Unit", "%") == "%":
+                actual_qty = product_weight * (percentage / 100.0)
+            else:
+                actual_qty = percentage
+            total += actual_qty * detail.get("Price", 0)
+        
+        # 更新總成本顯示
+        self.total_label.setText(f"總成本：{total:.2f}")
+        
+        # 取得產品名稱
+        product_id = self.product_combo.currentData()
+        if product_id:
+            product = get_item_by_id(product_id)
+            product_name = product["ItemName"] if product else f"ItemID:{product_id}"
+        else:
+            product_name = "未知產品"
+        
+        # 寫入 CostHistory 表，記錄產品名稱與總成本
+        add_cost_history(product_name, total)
 
         # 重新整理畫面
         self.refresh_detail_tree()
         self.calculate_total_cost()
 
-        QMessageBox.information(self, "完成", f"已自動抓取並更新 {updated_count} 筆明細的價格。")
-
+        QMessageBox.information(self, "完成", f"已自動抓取並更新產品的價格。")
 
     def accept(self):
         # 檢查必要欄位
