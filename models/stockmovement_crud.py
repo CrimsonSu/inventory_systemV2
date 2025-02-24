@@ -32,15 +32,15 @@ def add_item(item_name: str, item_type: str, category: Optional[str], unit: Opti
     
 # === CRUD Functions for StockMovement ===
 
-def add_stock_movement(item_id: int, movement_type: str, quantity: float, movement_date: str, batch_no: str):
+def add_stock_movement(item_id: int, supplier_id: int, movement_type: str, quantity: float, movement_date: str, batch_no: str):
     """新增庫存移動記錄"""
     with get_connection() as conn:
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO StockMovement (ItemID, MovementType, Quantity, MovementDate, BatchNo)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (item_id, movement_type, quantity, movement_date, batch_no))
+                INSERT INTO StockMovement (ItemID, SupplierID, MovementType, Quantity, MovementDate, BatchNo)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (item_id, supplier_id, movement_type, quantity, movement_date, batch_no))
             conn.commit()
             logging.info("成功新增庫存移動記錄")
         except sqlite3.IntegrityError as e:
@@ -56,8 +56,23 @@ def get_stock_movements() -> List[Dict]:
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
+def update_stock_movement(movement_id: int, item_id: int, supplier_id: int, movement_type: str, quantity: float, movement_date: str, batch_no: str):
+    """更新庫存移動記錄"""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE StockMovement
+            SET ItemID = ?, SupplierID = ?, MovementType = ?, Quantity = ?, MovementDate = ?, BatchNo = ?
+            WHERE MovementID = ?
+        ''', (item_id, supplier_id, movement_type, quantity, movement_date, batch_no, movement_id))
+        if cursor.rowcount == 0:
+            logging.warning("更新失敗，移動記錄 ID 不存在: MovementID = %d", movement_id)
+        else:
+            conn.commit()
+            logging.info("成功更新庫存移動記錄: MovementID = %d", movement_id)
+
 def delete_stock_movement(movement_id: int):
-    """刪除指定的庫存移動記錄"""
+    """刪除庫存移動記錄"""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM StockMovement WHERE MovementID = ?", (movement_id,))
@@ -66,7 +81,6 @@ def delete_stock_movement(movement_id: int):
         else:
             conn.commit()
             logging.info("已刪除庫存移動記錄: MovementID = %d", movement_id)
-
 def check_sqlite_version(min_version: str = "3.30.0"):
     """檢查 SQLite 版本，確保符合最低版本要求"""
     current_version = sqlite3.sqlite_version

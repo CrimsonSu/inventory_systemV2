@@ -71,7 +71,9 @@ def create_tables():
                 RefDocType TEXT,
                 RefDocID INTEGER,
                 BatchNo TEXT,
+                SupplierID INTEGER,  -- 新增欄位
                 FOREIGN KEY (ItemID) REFERENCES ItemMaster(ItemID)
+                FOREIGN KEY (SupplierID) REFERENCES Supplier(SupplierID)
             );
         ''')
 

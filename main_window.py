@@ -8,6 +8,9 @@ from ui.SupplierItemMapPage import SupplierItemMapPage
 from ui.pricehistorypage import PriceHistoryPage
 from ui.bom_page import BOMPage
 from ui.bomhistory_page import CostHistoryPage
+from ui.stockmovement_page import StockMovementPage
+from ui.stock_page import StockPage
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -44,6 +47,13 @@ class MainWindow(QMainWindow):
 
         self.bomhistory_page = CostHistoryPage()
         self.tabs.addTab(self.bomhistory_page, "BOM歷史頁面")
+
+        self.stockmovement_page = StockMovementPage()
+        self.tabs.addTab(self.stockmovement_page, "進出庫存管理")
+
+        self.stock_page = StockPage()
+        self.tabs.addTab(self.stock_page, "庫存管理")   
+
 
 
 if __name__ == "__main__":
