@@ -36,7 +36,7 @@ def add_item(item_name: str, item_type: str, category: Optional[str], unit: Opti
 
 # === CRUD Functions for SupplierItemMap ===
 
-def add_supplier_item_mapping(supplier_id: int, item_id: int, moq: Optional[int] = None, price: Optional[float] = None, lead_time: Optional[int] = None):
+def add_supplier_item_mapping(supplier_id: int, item_id: int, moq: Optional[int] = None, price: Optional[float] = None, lead_time: Optional[int] = None, safety_stock_level: Optional[float] = 0.0):
     """新增供應商與項目關聯記錄，檢查外鍵是否存在"""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -53,10 +53,11 @@ def add_supplier_item_mapping(supplier_id: int, item_id: int, moq: Optional[int]
 
         # 插入記錄
         try:
+            logging.info(f"正在插入記錄: SupplierID={supplier_id}, ItemID={item_id}, SafetyStockLevel={safety_stock_level}")
             cursor.execute('''
-                INSERT INTO SupplierItemMap (SupplierID, ItemID, MOQ, Price, LeadTime)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (supplier_id, item_id, moq, price, lead_time))
+                INSERT INTO SupplierItemMap (SupplierID, ItemID, MOQ, Price, LeadTime, SafetyStockLevel)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (supplier_id, item_id, moq, price, lead_time, safety_stock_level))
 
             if price is not None:
                 add_price_history_from_mapping(
@@ -64,12 +65,12 @@ def add_supplier_item_mapping(supplier_id: int, item_id: int, moq: Optional[int]
                     item_id=item_id,
                     price=price,
                     effective_date=datetime.now().strftime("%Y-%m-%d"),
-                    conn=conn  # 傳入現有連接
+                    conn=conn
                 )
-                conn.commit()
+            conn.commit()
+            logging.info("成功新增供應商項目映射記錄")
         except sqlite3.IntegrityError as e:
             conn.rollback()
-            
             if "UNIQUE" in str(e):
                 logging.error("唯一性約束失敗: %s", e)
                 raise ValueError("同一 SupplierID 與 ItemID 的映射已存在") from e
@@ -79,13 +80,13 @@ def add_supplier_item_mapping(supplier_id: int, item_id: int, moq: Optional[int]
             else:
                 raise
 
-
 def get_supplier_item_mappings() -> List[Dict]:
     """取得所有供應商與項目關聯記錄"""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT m.MappingID, m.SupplierID, s.SupplierName, m.ItemID, i.ItemName, m.MOQ, m.Price, m.LeadTime
+            SELECT m.MappingID, m.SupplierID, s.SupplierName, m.ItemID, i.ItemName, 
+                   m.MOQ, m.Price, m.LeadTime, m.SafetyStockLevel
             FROM SupplierItemMap m
             JOIN Supplier s ON m.SupplierID = s.SupplierID
             JOIN ItemMaster i ON m.ItemID = i.ItemID
@@ -98,7 +99,8 @@ def get_supplier_item_mapping_by_id(mapping_id: int) -> Optional[Dict]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT m.MappingID, m.SupplierID, s.SupplierName, m.ItemID, i.ItemName, m.MOQ, m.Price, m.LeadTime
+            SELECT m.MappingID, m.SupplierID, s.SupplierName, m.ItemID, i.ItemName, 
+                   m.MOQ, m.Price, m.LeadTime, m.SafetyStockLevel
             FROM SupplierItemMap m
             JOIN Supplier s ON m.SupplierID = s.SupplierID
             JOIN ItemMaster i ON m.ItemID = i.ItemID
@@ -111,11 +113,12 @@ def get_supplier_item_mapping_by_id(mapping_id: int) -> Optional[Dict]:
 def update_supplier_item_mapping(mapping_id: int, **kwargs):
     """更新供應商與項目關聯記錄"""
     allowed_fields = {
-        "supplier_id": "SupplierID",  # 新增，允許更新供應商
-        "item_id": "ItemID",          # 新增，允許更新產品
+        "supplier_id": "SupplierID",
+        "item_id": "ItemID",
         "moq": "MOQ",
         "price": "Price",
-        "lead_time": "LeadTime"
+        "lead_time": "LeadTime",
+        "safety_stock_level": "SafetyStockLevel"
     }
     fields = []
     values = []
@@ -126,30 +129,28 @@ def update_supplier_item_mapping(mapping_id: int, **kwargs):
             values.append(kwargs[param])
 
     if not fields:
-        return  # 無需更新
+        return
 
     query = f"UPDATE SupplierItemMap SET {', '.join(fields)} WHERE MappingID = ?"
     values.append(mapping_id)
 
     with get_connection() as conn:
         cursor = conn.cursor()
+        logging.info(f"正在更新記錄: MappingID={mapping_id}, 更新欄位={fields}, 值={values[:-1]}")
         cursor.execute(query, tuple(values))
 
         if "price" in kwargs and kwargs["price"] is not None:
-            # 獲取現有 SupplierID 和 ItemID
             cursor.execute("SELECT SupplierID, ItemID FROM SupplierItemMap WHERE MappingID = ?", (mapping_id,))
             mapping_data = cursor.fetchone()
-            # 調用時傳入現有連接
             add_price_history_from_mapping(
                 supplier_id=mapping_data[0],
                 item_id=mapping_data[1],
                 price=kwargs["price"],
                 effective_date=datetime.now().strftime("%Y-%m-%d"),
-                conn=conn  # 關鍵：共享連接
+                conn=conn
             )
 
-        conn.commit()  # 統一提交事務
-
+        conn.commit()
         logging.info("成功更新供應商項目映射記錄: MappingID = %d", mapping_id)
 
 def delete_supplier_item_mapping(mapping_id: int) -> bool:
@@ -163,6 +164,18 @@ def delete_supplier_item_mapping(mapping_id: int) -> bool:
         conn.commit()
         logging.info("已刪除供應商項目映射記錄: MappingID = %d", mapping_id)
         return True
+    
+def get_safety_stock_level(item_id: int, supplier_id: int) -> float:
+    """取得某個 Item 和 Supplier 的安全水位"""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT SafetyStockLevel 
+            FROM SupplierItemMap 
+            WHERE ItemID = ? AND SupplierID = ?
+        ''', (item_id, supplier_id))
+        result = cursor.fetchone()
+        return result[0] if result else 0.0
     
 def get_latest_supplier_price(supplier_id: int, item_id: int):
     """

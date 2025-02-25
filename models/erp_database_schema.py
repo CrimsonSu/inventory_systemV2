@@ -101,6 +101,7 @@ def create_tables():
                 MOQ INTEGER,
                 Price REAL,
                 LeadTime INTEGER,
+                SafetyStockLevel REAL DEFAULT 0.0,  -- 新增安全水位欄位，預設為 0
                 FOREIGN KEY (SupplierID) REFERENCES Supplier(SupplierID),
                 FOREIGN KEY (ItemID) REFERENCES ItemMaster(ItemID)
                 UNIQUE(SupplierID, ItemID)  -- 添加唯一性約束

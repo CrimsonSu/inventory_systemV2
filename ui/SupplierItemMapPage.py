@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                             QMessageBox, QMenu, QAbstractItemView)
 from PyQt5.QtCore import Qt
 from models.supplieritemmap_crud import (get_supplier_item_mappings, delete_supplier_item_mapping,
-                                        get_supplier_item_mapping_by_id)
+                                        get_supplier_item_mapping_by_id, get_connection)
 from ui.dialogs.supplieritemmap_dialog import SupplierItemMapDialog
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QApplication
@@ -39,10 +39,10 @@ class SupplierItemMapPage(QWidget):
         
         main_layout.addLayout(tool_layout)
         
-        # 关联表格
+# 關聯表格
         self.table = QTableWidget(self)
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["ID", "供应商名称", "产品名称", "MOQ", "价格", "交期"])
+        self.table.setColumnCount(7)  # 新增安全水位欄位
+        self.table.setHorizontalHeaderLabels(["ID", "供應商名稱", "產品名稱", "MOQ", "價格", "交期", "安全水位"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -50,7 +50,6 @@ class SupplierItemMapPage(QWidget):
         
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.cellClicked.connect(self.select_row)
 
         main_layout.addWidget(self.table)
@@ -67,13 +66,25 @@ class SupplierItemMapPage(QWidget):
 
     def load_data(self, search_text=None):
         self.table.setRowCount(0)
-        mappings = get_supplier_item_mappings()
+        
+        # 更新查詢以包含 SafetyStockLevel
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT m.MappingID, m.SupplierID, s.SupplierName, m.ItemID, i.ItemName, 
+                    m.MOQ, m.Price, m.LeadTime, m.SafetyStockLevel
+                FROM SupplierItemMap m
+                JOIN Supplier s ON m.SupplierID = s.SupplierID
+                JOIN ItemMaster i ON m.ItemID = i.ItemID
+            ''')
+            columns = [col[0] for col in cursor.description]
+            mappings = [dict(zip(columns, row)) for row in cursor.fetchall()]
         
         if search_text:
             search = search_text.lower()
             mappings = [m for m in mappings if 
-                       search in m["SupplierName"].lower() or 
-                       search in m["ItemName"].lower()]
+                        search in m["SupplierName"].lower() or 
+                        search in m["ItemName"].lower()]
 
         for row, mapping in enumerate(mappings):
             self.table.insertRow(row)
@@ -83,6 +94,7 @@ class SupplierItemMapPage(QWidget):
             self.table.setItem(row, 3, QTableWidgetItem(str(mapping["MOQ"] or "")))
             self.table.setItem(row, 4, QTableWidgetItem(str(mapping["Price"] or "")))
             self.table.setItem(row, 5, QTableWidgetItem(str(mapping["LeadTime"] or "")))
+            self.table.setItem(row, 6, QTableWidgetItem(f"{mapping['SafetyStockLevel']:.2f}"))  # 顯示安全水位
 
     def search_mappings(self):
         search_text = self.search_input.text().strip()
