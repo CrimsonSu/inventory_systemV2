@@ -42,7 +42,7 @@ class SupplierItemMapPage(QWidget):
 # 關聯表格
         self.table = QTableWidget(self)
         self.table.setColumnCount(7)  # 新增安全水位欄位
-        self.table.setHorizontalHeaderLabels(["ID", "供應商名稱", "產品名稱", "MOQ", "價格", "交期", "安全水位"])
+        self.table.setHorizontalHeaderLabels(["ID", "供應商名稱", "產品名稱", "價格", "MOQ", "交期", "安全水位"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -91,8 +91,8 @@ class SupplierItemMapPage(QWidget):
             self.table.setItem(row, 0, QTableWidgetItem(str(mapping["MappingID"])))
             self.table.setItem(row, 1, QTableWidgetItem(mapping["SupplierName"]))
             self.table.setItem(row, 2, QTableWidgetItem(mapping["ItemName"]))
-            self.table.setItem(row, 3, QTableWidgetItem(str(mapping["MOQ"] or "")))
-            self.table.setItem(row, 4, QTableWidgetItem(str(mapping["Price"] or "")))
+            self.table.setItem(row, 3, QTableWidgetItem(str(mapping["Price"] or "")))
+            self.table.setItem(row, 4, QTableWidgetItem(str(mapping["MOQ"] or ""))) 
             self.table.setItem(row, 5, QTableWidgetItem(str(mapping["LeadTime"] or "")))
             self.table.setItem(row, 6, QTableWidgetItem(f"{mapping['SafetyStockLevel']:.2f}"))  # 顯示安全水位
 

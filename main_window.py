@@ -10,6 +10,7 @@ from ui.bom_page import BOMPage
 from ui.bomhistory_page import CostHistoryPage
 from ui.stockmovement_page import StockMovementPage
 from ui.stock_page import StockPage
+from ui.salesorder_page import SalesOrderPage
 
 
 class MainWindow(QMainWindow):
@@ -54,7 +55,8 @@ class MainWindow(QMainWindow):
         self.stock_page = StockPage()
         self.tabs.addTab(self.stock_page, "庫存管理")   
 
-
+        self.salesorder_page = SalesOrderPage()
+        self.tabs.addTab(self.salesorder_page, "訂單管理")
 
 if __name__ == "__main__":
     initialize_database()

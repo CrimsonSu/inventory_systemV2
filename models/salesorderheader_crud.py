@@ -7,31 +7,6 @@ from models.customer_crud import add_customer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def get_items() -> List[Dict]:
-    """取得所有項目"""
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ItemMaster")
-        columns = [col[0] for col in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
-    
-def add_item(item_name: str, item_type: str, category: Optional[str], unit: Optional[str]):
-    """新增項目"""
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        try:
-            cursor.execute('''
-                INSERT INTO ItemMaster (ItemName, ItemType, Category, Unit)
-                VALUES (?, ?, ?, ?)
-            ''', (item_name, item_type, category, unit))
-            conn.commit()
-            logging.info("成功新增項目: %s", item_name)
-        except sqlite3.IntegrityError as e:
-            conn.rollback()
-            logging.error("唯一性約束失敗: %s", e)
-            raise ValueError("項目插入失敗")
-
-
 # === CRUD Functions for SalesOrderHeader ===
 
 VALID_STATUSES = {"Pending", "Shipped", "Cancelled", "Delivered"}
@@ -43,7 +18,6 @@ def add_sales_order(customer_id: int, order_date: str, status: str):
 
     with get_connection() as conn:
         cursor = conn.cursor()
-        # 新增外鍵檢查
         cursor.execute("SELECT 1 FROM Customer WHERE CustomerID = ?", (customer_id,))
         if not cursor.fetchone():
             raise ValueError(f"CustomerID {customer_id} 不存在")
@@ -59,21 +33,32 @@ def add_sales_order(customer_id: int, order_date: str, status: str):
             logging.error("新增訂單失敗: %s", e)
             raise ValueError("資料庫操作失敗") from e
 
-
-
 def get_sales_orders() -> List[Dict]:
-    """取得所有銷售訂單記錄"""
+    """取得所有銷售訂單記錄，包括客戶名稱與成品明細"""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM SalesOrderHeader")
+        cursor.execute('''
+            SELECT s.OrderID, s.CustomerID, c.CustomerName, s.OrderDate, s.Status,
+                   GROUP_CONCAT(i.ItemName || ' ' || d.Quantity || ' ' || i.Unit, '; ') AS Items
+            FROM SalesOrderHeader s
+            JOIN Customer c ON s.CustomerID = c.CustomerID
+            LEFT JOIN SalesOrderDetail d ON s.OrderID = d.OrderID
+            LEFT JOIN ItemMaster i ON d.ItemID = i.ItemID
+            GROUP BY s.OrderID, s.CustomerID, c.CustomerName, s.OrderDate, s.Status
+        ''')
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 def get_sales_order_by_id(order_id: int) -> Optional[Dict]:
-    """依 OrderID 查詢銷售訂單記錄"""
+    """依 OrderID 查詢銷售訂單記錄，包括客戶名稱"""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM SalesOrderHeader WHERE OrderID = ?", (order_id,))
+        cursor.execute('''
+            SELECT s.OrderID, s.CustomerID, c.CustomerName, s.OrderDate, s.Status
+            FROM SalesOrderHeader s
+            JOIN Customer c ON s.CustomerID = c.CustomerID
+            WHERE s.OrderID = ?
+        ''', (order_id,))
         columns = [col[0] for col in cursor.description]
         row = cursor.fetchone()
         return dict(zip(columns, row)) if row else None
@@ -109,7 +94,6 @@ def update_sales_order(order_id: int, **kwargs):
             logging.error("更新訂單失敗: %s", e)
             raise ValueError("資料庫操作失敗") from e
 
-
 def delete_sales_order(order_id: int):
     """刪除指定的銷售訂單"""
     with get_connection() as conn:
@@ -123,9 +107,6 @@ def delete_sales_order(order_id: int):
             conn.rollback()
             logging.error("刪除訂單失敗: %s", e)
             raise ValueError("資料庫操作失敗") from e
-
-
-
 
 # === 測試代碼 ===
 if __name__ == "__main__":

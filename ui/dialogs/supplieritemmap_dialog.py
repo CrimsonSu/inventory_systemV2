@@ -19,6 +19,8 @@ class SupplierItemMapDialog(QDialog):
         self.setWindowTitle("新增供應商-產品關聯" if not self.mapping_id else "編輯關聯")
         layout = QFormLayout(self)
 
+        INPUT_WIDTH = 200
+
         # 供應商選擇（啟用編輯和搜尋）
         self.supplier_combo = QComboBox()
         self.supplier_combo.setEditable(True)
@@ -28,8 +30,9 @@ class SupplierItemMapDialog(QDialog):
         supplier_completer = QCompleter(
             [f"{supplier['SupplierName']} (ID:{supplier['SupplierID']})" for supplier in self.suppliers]
         )
-        supplier_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.supplier_combo.setCurrentText("")  # 調整功能：預設空白，避免預選第一項
         self.supplier_combo.setCompleter(supplier_completer)
+        self.supplier_combo.setFixedWidth(INPUT_WIDTH)  # 調整功能：統一寬度
         layout.addRow("供應商*：", self.supplier_combo)
 
         # 產品選擇（啟用編輯和搜尋）
@@ -41,37 +44,43 @@ class SupplierItemMapDialog(QDialog):
         item_completer = QCompleter(
             [f"{item['ItemName']} (ID:{item['ItemID']})" for item in self.items]
         )
-        item_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.item_combo.setCurrentText("")  # 調整功能：預設空白，避免預選第一項
         self.item_combo.setCompleter(item_completer)
+        self.item_combo.setFixedWidth(INPUT_WIDTH)  # 調整功能：統一寬度
         layout.addRow("產品*：", self.item_combo)
+
+         # 價格輸入（浮點數）
+        self.price_input = QDoubleSpinBox()
+        self.price_input.setMinimum(0.0)
+        self.price_input.setMaximum(1000000.0)
+        self.price_input.setDecimals(2)
+        self.price_input.setSpecialValueText("")
+        self.price_input.setFixedWidth(INPUT_WIDTH)  # 調整功能：統一寬度
+        layout.addRow("價格：", self.price_input)
 
         # MOQ 輸入（整數）
         self.moq_input = QSpinBox()
         self.moq_input.setMinimum(0)
         self.moq_input.setMaximum(1000000)
         self.moq_input.setSpecialValueText("")
+        self.moq_input.setFixedWidth(INPUT_WIDTH)  # 調整功能：統一寬度
         layout.addRow("MOQ：", self.moq_input)
 
-        # 價格輸入（浮點數）
-        self.price_input = QDoubleSpinBox()
-        self.price_input.setMinimum(0.0)
-        self.price_input.setMaximum(1000000.0)
-        self.price_input.setDecimals(2)
-        self.price_input.setSpecialValueText("")
-        layout.addRow("價格：", self.price_input)
 
         # 交期輸入（整數天數）
         self.lead_time_input = QSpinBox()
         self.lead_time_input.setMinimum(0)
         self.lead_time_input.setMaximum(3650)
         self.lead_time_input.setSpecialValueText("")
+        self.lead_time_input.setFixedWidth(INPUT_WIDTH)  # 調整功能：統一寬度
         layout.addRow("交期：", self.lead_time_input)
 
         # 安全水位
         self.safety_stock_input = QDoubleSpinBox()
-        self.safety_stock_input.setMinimum(0.0)
+        self.safety_stock_input.setMinimum(0)
         self.safety_stock_input.setMaximum(1000000.0)
         self.safety_stock_input.setDecimals(2)
+        self.safety_stock_input.setFixedWidth(INPUT_WIDTH)  # 調整功能：統一寬度
         layout.addRow("安全水位*：", self.safety_stock_input)
 
         buttons = QDialogButtonBox(
